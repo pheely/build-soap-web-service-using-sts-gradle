@@ -1,5 +1,10 @@
 # Build Soap Web Service using STS and Gradle
 
+## Purpose
+
+We are going to build a soap web service that return the information of a specified movie.
+
+
 ## Directory Structure
 ```shell
 $ ls -l src/main/java/hello
