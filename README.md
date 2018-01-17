@@ -424,4 +424,4 @@ We can also use postman to test the soap web service. To do that,
 
 Here is an example
 
-![alt text](../images/postman.png "Postman")
+![alt text](images/postman.png "Postman")
