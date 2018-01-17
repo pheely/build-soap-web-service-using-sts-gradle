@@ -298,3 +298,130 @@ The @ResponsePayload annotation makes Spring WS map the returned value to the re
 ## Configure web service beans
 
 Create a new class with Spring WS related beans configuration:
+
+``` Java
+package hello;
+
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.ws.config.annotation.EnableWs;
+import org.springframework.ws.config.annotation.WsConfigurerAdapter;
+import org.springframework.ws.transport.http.MessageDispatcherServlet;
+import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
+import org.springframework.xml.xsd.SimpleXsdSchema;
+import org.springframework.xml.xsd.XsdSchema;
+
+@EnableWs
+@Configuration
+public class WebServiceConfig extends WsConfigurerAdapter {
+	@Bean
+	public ServletRegistrationBean messageDispatcherServlet(ApplicationContext applicationContext) {
+		MessageDispatcherServlet servlet = new MessageDispatcherServlet();
+		servlet.setApplicationContext(applicationContext);
+		servlet.setTransformWsdlLocations(true);
+		return new ServletRegistrationBean(servlet, "/ws/*");
+	}
+
+	@Bean(name = "movies")
+	public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema moviesSchema) {
+		DefaultWsdl11Definition wsdl11Definition = new DefaultWsdl11Definition();
+		wsdl11Definition.setPortTypeName("MoviesPort");
+		wsdl11Definition.setLocationUri("/ws");
+		wsdl11Definition.setTargetNamespace("http://pheely.io/get-movie-web-service");
+		wsdl11Definition.setSchema(moviesSchema);
+		return wsdl11Definition;
+	}
+
+	@Bean
+	public XsdSchema moviesSchema() {
+		return new SimpleXsdSchema(new ClassPathResource("movies.xsd"));
+	}
+}
+```
+
+* Spring WS uses a different servlet type for handling SOAP messages: __MessageDispatcherServlet__. It is important to inject and set __ApplicationContext__ to __MessageDispatcherServlet__. Without that, Spring WS will not detect Spring beans automatically.
+
+* By naming this bean messageDispatcherServlet, it does not replace Spring Boot’s default DispatcherServlet bean.
+
+* __DefaultMethodEndpointAdapter__ configures annotation driven Spring WS programming model. This makes it possible to use the various annotations like __@Endpoint__ mentioned earlier.
+
+* __DefaultWsdl11Definition__ exposes a standard WSDL 1.1 using XsdSchema
+
+* It is important to specify bean names for __MessageDispatcherServlet__ and __DefaultWsdl11Definition__. Bean names determine the URL under which web service and the generated WSDL file is available. In this case, the WSDL will be available under http://<host>:<port>/ws/movies.wsdl.
+
+* This configuration also uses the WSDL location servlet transformation __servlet.setTransformWsdlLocations(true)__. If you visit http://localhost:8080/ws/countries.wsdl, the __soap:address__ will have the proper address. If you instead visit the WSDL from the public facing IP address assigned to your machine, you will see that address instead.
+
+## Make the application executable
+
+``` java
+package hello;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Application {
+
+	public static void main(String[] args) {
+		SpringApplication.run(Application.class, args);
+	}
+}
+```
+
+## Test the application
+
+Now that the application is running, you can test it. Create a file __request.xml__ containing the following SOAP request:
+
+``` xml
+<?xml version="1.0"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:gs="http://pheely.io/get-movie-web-service">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <gs:getMovieRequest>
+      <gs:name>Titanic</gs:name>
+    </gs:getMovieRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+```
+
+The are a few options when it comes to testing the SOAP interface. You can use something like SoapUI or just use curl command line toolas shown below.
+
+``` shell
+$ curl -s --header "content-type: text/xml" -d @request.xml http://localhost:8080/ws | xmllint --format -
+```
+
+As a result you should see this response:
+
+``` xml
+<?xml version="1.0"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Header/>
+  <SOAP-ENV:Body>
+    <ns2:getMovieResponse xmlns:ns2="http://pheely.io/get-movie-web-service">
+      <ns2:movie>
+        <ns2:name>Titanic</ns2:name>
+        <ns2:genra>epic romance-disaster</ns2:genra>
+        <ns2:director>James Cameron</ns2:director>
+        <ns2:year>1997</ns2:year>
+        <ns2:country>USA</ns2:country>
+      </ns2:movie>
+    </ns2:getMovieResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+```
+
+__xmllint --format -__ command formats the response XML nicely.
+
+We can also use postman to test the soap web service. To do that,
+
+* Give the SOAP endpoint as the URL. If you are using a WSDL, then give the path to the WSDL as the URL.
+* Set the request method to POST.
+* Define a header "content-type" as "text/xml".
+* In the request body, specify in __raw__ and __XML (text/xml)__, and define the SOAP Envelope, Header and Body tags as required. 
+
+Here is an example
+
+![alt text](../images/postman.png "Postman")
