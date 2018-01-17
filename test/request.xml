@@ -1,0 +1,9 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+				  xmlns:gs="http://pheely.io/get-movie-web-service">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <gs:getMovieRequest>
+         <gs:name>Titanic</gs:name>
+      </gs:getMovieRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
