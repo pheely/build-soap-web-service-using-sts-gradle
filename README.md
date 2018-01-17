@@ -188,3 +188,113 @@ dependencies {
     compile(files(genJaxb.classesDir).builtBy(genJaxb))
 }
 ```
+
+Generated classes are placed in build/generated-sources/jaxb/ directory.
+
+## Create our movie repository
+
+We are going to create a dummy movie repository implementation with hardcoded data. 
+
+```java
+package hello;
+
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
+
+import io.pheely.get_movie_web_service.Movie;
+import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
+
+@Component
+public class MovieRepository {
+	private static final Map<String, Movie> movies = new HashMap<>();
+
+	@PostConstruct
+	public void initData() {
+		Movie titanic = new Movie();
+		titanic.setName("Titanic");
+		titanic.setYear(1997);
+		titanic.setCountry("USA");
+		titanic.setGenra("epic romance-disaster");
+		titanic.setDirector("James Cameron");
+
+		movies.put(titanic.getName(), titanic);
+
+		Movie pearlHarbor = new Movie();
+		pearlHarbor.setName("Pearl Harbor");
+		pearlHarbor.setYear(2001);
+		pearlHarbor.setCountry("USA");
+		pearlHarbor.setGenra("romantic period war drama");
+		pearlHarbor.setDirector("Michael Bay");
+
+		movies.put(pearlHarbor.getName(), pearlHarbor);
+
+		Movie spectre = new Movie();
+		spectre.setName("Spectre");
+		spectre.setYear(2015);
+		spectre.setCountry("USA");
+		spectre.setGenra("spy");
+		spectre.setDirector("Sam Mendes");
+
+		movies.put(spectre.getName(), spectre);
+	}
+
+	public Movie findMovie(String name) {
+		Assert.notNull(name, "The movie's name must not be null");
+		return movies.get(name);
+	}
+}
+```
+
+@PostConstruct annotates a method that needs to be executed after dependency injection is complete to do initialization.
+
+## Create movie service endpoint
+
+To create a service endpoint, you only need a POJO with a few Spring WS annotations to handle the incoming SOAP requests.
+
+``` java
+package hello;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ws.server.endpoint.annotation.Endpoint;
+import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
+import org.springframework.ws.server.endpoint.annotation.RequestPayload;
+import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+
+import io.pheely.get_movie_web_service.GetMovieRequest;
+import io.pheely.get_movie_web_service.GetMovieResponse;
+
+@Endpoint
+public class MovieEndpoint {
+	private static final String NAMESPACE_URI = "http://pheely.io/get-movie-web-service";
+
+	private MovieRepository movieRepository;
+
+	@Autowired
+	public MovieEndpoint(MovieRepository movieRepository) {
+		this.movieRepository = movieRepository;
+	}
+
+	@PayloadRoot(namespace = NAMESPACE_URI, localPart = "getMovieRequest")
+	@ResponsePayload
+	public GetMovieResponse getMovie(@RequestPayload GetMovieRequest request) {
+		GetMovieResponse response = new GetMovieResponse();
+		response.setMovie(movieRepository.findMovie(request.getName()));
+
+		return response;
+	}
+}
+```
+
+@Endpoint registers the class with Spring WS as a potential candidate for processing incoming SOAP messages.
+
+@PayloadRoot is then used by Spring WS to pick the handler method based on the message’s namespace and localPart.
+
+@RequestPayload indicates that the incoming message will be mapped to the method’s request parameter.
+
+The @ResponsePayload annotation makes Spring WS map the returned value to the response payload.
+
+## Configure web service beans
+
+Create a new class with Spring WS related beans configuration:
