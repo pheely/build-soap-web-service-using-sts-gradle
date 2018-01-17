@@ -352,7 +352,7 @@ public class WebServiceConfig extends WsConfigurerAdapter {
 
 * It is important to specify bean names for __MessageDispatcherServlet__ and __DefaultWsdl11Definition__. Bean names determine the URL under which web service and the generated WSDL file is available. In this case, the WSDL will be available under http://<host>:<port>/ws/movies.wsdl.
 
-* This configuration also uses the WSDL location servlet transformation __servlet.setTransformWsdlLocations(true)__. If you visit http://localhost:8080/ws/countries.wsdl, the __soap:address__ will have the proper address. If you instead visit the WSDL from the public facing IP address assigned to your machine, you will see that address instead.
+* This configuration also uses the WSDL location servlet transformation __servlet.setTransformWsdlLocations(true)__. If you visit http://localhost:8080/ws/movies.wsdl, the __soap:address__ will have the proper address. If you instead visit the WSDL from the public facing IP address assigned to your machine, you will see that address instead.
 
 ## Make the application executable
 
